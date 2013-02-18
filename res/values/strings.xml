@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">BTStressTest</string>
+    <string name="menu_settings">Settings</string>
+    <string name="paired_name">Name: </string>
+    <string name="paired_addrs">Address: </string>
+    <string name="paired_pckt_send">Packets: </string>
+
+</resources>
