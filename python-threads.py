@@ -41,6 +41,7 @@ class ScanThread(threading.Thread):
 			except Exception:
 				print "Failed to Scan, stopping all threads"
 				self.stop()
+				sys.exit()
 			except KeyboardInterrupt:
 				print "CTRL+C!"
 				sys.exit()
