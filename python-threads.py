@@ -14,7 +14,7 @@ UUID = "00000000-deca-fade-deca-deafdecacaff"
 def signal_handler(signal, frame):
 	# print 'You pressed Ctrl+C!'
 	scan.stop()
-	sys.exit(0)
+	sys.exit()
 
 class ScanThread(threading.Thread):
 	def __init__(self):
@@ -41,6 +41,9 @@ class ScanThread(threading.Thread):
 			except Exception:
 				print "Failed to Scan, stopping all threads"
 				self.stop()
+			except KeyboardInterrupt:
+				print "CTRL+C!"
+				sys.exit()
 			print "Services found: %d"%len(services)
 			for service in services :
 				print "Service found on BT %s @ %s" % (service["host"],service["port"])
