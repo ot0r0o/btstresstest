@@ -36,6 +36,8 @@ class ScanThread(threading.Thread):
 		# print "Started scanning thread"
 		while self.cond==True:
 			log("Scanning bluetooth devices... ")
+		
+			
 			# for addr, name in bluetooth.discover_devices(lookup_names=True):
 			# 	print("Device found: %s %s" %(name,addr))
 			# 	if name.startswith(DEVICE_NAME) and addr not in self.activeZephyrs and name=="BH-DesireHD":
@@ -48,11 +50,15 @@ class ScanThread(threading.Thread):
 			except Exception:
 				log("Failed to Scan, stopping all threads")
 				self.stop()
+				raise
 				sys.exit()
+				
 			except KeyboardInterrupt:
 				log("CTRL+C!")
 				sys.exit()
+				
 			log("Services found: %d"%len(services))
+			log("\t\t\t\t\t\t\t Active devices: %d" % len(self.activeZephyrs))
 			for service in services :
 				log("Service found on BT %s @ %s" %
                                         (service["host"],service["port"]))
@@ -62,6 +68,7 @@ class ScanThread(threading.Thread):
 					recvingTh = ReceivingThread(service,self.activeZephyrs)
 					recvingTh.start()
 					self.activeThreads.append(recvingTh)
+					log("\t\t\t\t\t\t\t Active devices: %d" % len(self.activeZephyrs))
  					
 			time.sleep(1)
 
@@ -96,7 +103,17 @@ class ReceivingThread(threading.Thread):
 				# Saved BT address doesn't work, will do a scan
 			else:
 				raise
-
+		except Exception, ex:
+			socket.close()
+			self.activeZephyrs.remove(self.address)
+			self.stop()
+			
+			if HOST_IS_DOWN_SIGNATURE in str(ex):
+				pass
+			# Saved BT address doesn't work, will do a scan
+			else:
+				raise
+		
 		log("Receiving from %s" % self.name)
 		try:
 			test = self.create_message_frame(0x14, [1])
@@ -129,10 +146,11 @@ class ReceivingThread(threading.Thread):
 				
 
 		except Exception, err:
-        		log("Device %s disconnected" % self.address)
+			log("Device %s disconnected" % self.address)
 			socket.close()
 			self.activeZephyrs.remove(self.address)
 			self.stop()
+			log("\t\t\t\t\t\t\t Active devices: %d" % len(self.activeZephyrs))
 			raise
 
 
