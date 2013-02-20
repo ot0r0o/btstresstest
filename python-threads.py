@@ -98,6 +98,7 @@ class ReceivingThread(threading.Thread):
 			self.activeZephyrs.remove(self.address)
 			self.stop()
 			
+			
 			if HOST_IS_DOWN_SIGNATURE in str(ex):
 				pass
 				# Saved BT address doesn't work, will do a scan
@@ -190,8 +191,9 @@ class ReceivingThread(threading.Thread):
 		# # print("************************************")        
 		# 	self.__get_type_of_packet(data)
 		# # print("************************************")      
-		print "%s %d bytes sent" % (self.address, len(data))
+		log("%s %d bytes sent" % (self.address, len(data)))
 		if ord(data[1]) == 35:
+			
 			lifesign = self.create_message_frame(0x23, [0])
 			socket.send(lifesign)
 
