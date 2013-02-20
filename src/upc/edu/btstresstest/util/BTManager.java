@@ -2,7 +2,6 @@ package upc.edu.btstresstest.util;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.Socket;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
@@ -45,11 +44,11 @@ public class BTManager {
 		this.p2 = p2;
 		app = (BTApp) act.getApplication();
 		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-		Log.d("bluetest", "Bluetooth adappter is " + mBluetoothAdapter);
+		Log.d(app.TAG, "Bluetooth adappter is " + mBluetoothAdapter);
 		if (mBluetoothAdapter != null) {
-			configureBT();
+			activateBT();
 		} else {
-			Log.d("bluetest", "Configure BT is not called");
+			Log.d(app.TAG, "Configure BT is not called");
 		}
 	}
 
@@ -57,13 +56,17 @@ public class BTManager {
 		return mBluetoothAdapter.isEnabled();
 	}
 
-	public boolean configureBT() {
+	public boolean activateBT() {
 		if (!mBluetoothAdapter.isEnabled()) {
 			Intent enableBtIntent = new Intent(
 					BluetoothAdapter.ACTION_REQUEST_ENABLE);
 			act.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+			return true;
 		}
+		return false;
+	}
 
+	public boolean configureBTServerSocket() {
 		// Use a temporary object that is later assigned to mmServerSocket,
 		// because mmServerSocket is final
 		/*
@@ -81,22 +84,25 @@ public class BTManager {
 		// mmServerSocket = (BluetoothServerSocket) m.invoke(
 		// mBluetoothAdapter, 1);
 
-		try {
-			UUID uuid = UUID.fromString("00000000-deca-fade-deca-deafdecacaff");
-			mmServerSocket = mBluetoothAdapter
-					.listenUsingInsecureRfcommWithServiceRecord("DummyZephyr",
-							uuid);
+		if (isBtEnabled()) {
+			try {
+				UUID uuid = UUID
+						.fromString("00000000-deca-fade-deca-deafdecacaff");
+				mmServerSocket = mBluetoothAdapter
+						.listenUsingInsecureRfcommWithServiceRecord(
+								"DummyZephyr", uuid);
 
-			Log.d("bluetest", "Socket listening in port");
+				Log.d(app.TAG, "Socket listening in port");
 
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-			stopBTStress();
-			return false;
-		} catch (IOException e) {
-			e.printStackTrace();
-			stopBTStress();
-			return false;
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+				stopBTStress();
+				return false;
+			} catch (IOException e) {
+				e.printStackTrace();
+				stopBTStress();
+				return false;
+			}
 		}
 		return true;
 
@@ -113,7 +119,6 @@ public class BTManager {
 		// // TODO Auto-generated catch block
 		// e.printStackTrace();
 		// }
-
 	}
 
 	private void setPairedInfo() {
@@ -135,53 +140,53 @@ public class BTManager {
 		}
 	}
 
-	public void startBTStress() {
+	public synchronized void startBTStress() {
 
-		if (!isBtEnabled())
-			configureBT();
+		if (isBtEnabled()) {
+			configureBTServerSocket();
 
-		// connectionListener = new Handler();
+			r = new Runnable() {
 
-		r = new Runnable() {
+				@Override
+				public void run() {
+					// Keep listening until exception occurs or a socket is
+					// returned
 
-			@Override
-			public void run() {
-				// Keep listening until exception occurs or a socket is returned
+					try {
+						Log.d(app.TAG, "StartBTStress serverSocket is "
+								+ mmServerSocket);
 
-				try {
-					Log.d("bluetest", "StartBTStress serverSocket is "
-							+ mmServerSocket);
+						if (mmServerSocket == null) {
+							configureBTServerSocket();
+						}
 
-					if (mmServerSocket == null) {
-						configureBT();
+						if (mmServerSocket != null)
+							socket = mmServerSocket.accept();
+						// If a connection was accepted
+						if (socket != null) {
+							// Do work to manage the connection (in a
+							// separate thread)
+							setPairedInfo();
+							sendMessages(socket);
+							// mmServerSocket.close();
+						}
+					} catch (IOException e) {
+						stopBTStress();
+						e.printStackTrace();
 					}
-
-					if (mmServerSocket != null)
-						socket = mmServerSocket.accept();
-					// If a connection was accepted
-					if (socket != null) {
-						// Do work to manage the connection (in a
-						// separate thread)
-						setPairedInfo();
-						sendMessages(socket);
-						// mmServerSocket.close();
-					}
-				} catch (IOException e) {
-					stopBTStress();
-					e.printStackTrace();
 				}
-			}
-		};
+			};
 
-		// connectionListener.post(r);
+			// connectionListener.post(r);
 
-		connectionListener = new Thread(r);
-		connectionListener.start();
+			connectionListener = new Thread(r);
+			connectionListener.start();
+		}
 	}
 
 	private void sendMessages(BluetoothSocket socket) throws IOException {
 
-		Log.d("bluetest", "sendMessages");
+		Log.d(app.TAG, "sendMessages");
 		// connectionListener.removeCallbacks(r);
 		// connectionListener = null;
 
@@ -189,16 +194,16 @@ public class BTManager {
 
 		// Prepare timerTask, send 4 messages every 500ms
 		TimerTask send = new TimerTask() {
-			byte[] b = new byte[1000];
+			byte[] b = new byte[1024];
 
 			@Override
 			public void run() {
 				try {
 					new Random().nextBytes(b);
-					Log.d("bluetest", "Before write");
+					// Log.d(app.TAG, "Before write");
 					bOs.write(b);
 					bOs.flush();
-					Log.d("bluetest", "After write");
+					// Log.d(app.TAG, "After write");
 					app.messageCount++;
 				} catch (Exception e) {
 					e.printStackTrace();

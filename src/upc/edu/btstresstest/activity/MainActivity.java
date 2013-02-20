@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -101,9 +102,16 @@ public class MainActivity extends Activity {
 		
 		switch (requestCode) {
 		case REQUEST_ENABLE_BT:
-				//btManager.paired = (resultCode == RESULT_OK);
+				if(resultCode == RESULT_OK){
+					Log.d(app.TAG, "Bluetooth activated");
+				}
+				else{
+					Log.d(app.TAG, "Bluetooth activation rejected, closing...");
+					finish();
+				}
+					
 			break;
-		default:
+		default:				
 				//btManager.paired = false;
 			break;
 		}
