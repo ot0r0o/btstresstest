@@ -4,6 +4,7 @@ import sys
 import threading
 import signal
 import time
+from datetime import datetime
 
 #Search for devices starting with this string
 DEVICE_NAME = "BH"
@@ -15,6 +16,12 @@ def signal_handler(signal, frame):
 	# print 'You pressed Ctrl+C!'
 	scan.stop()
 	sys.exit()
+
+def get_time():
+    return datetime.time(datetime.now())
+
+def log(message):
+    print "[%s] %s" % (get_time(),message)
 
 class ScanThread(threading.Thread):
 	def __init__(self):
@@ -28,7 +35,7 @@ class ScanThread(threading.Thread):
 
 		# print "Started scanning thread"
 		while self.cond==True:
-			print("Scanning bluetooth devices... ")
+			log("Scanning bluetooth devices... ")
 			# for addr, name in bluetooth.discover_devices(lookup_names=True):
 			# 	print("Device found: %s %s" %(name,addr))
 			# 	if name.startswith(DEVICE_NAME) and addr not in self.activeZephyrs and name=="BH-DesireHD":
@@ -39,15 +46,17 @@ class ScanThread(threading.Thread):
 			try:
 				services = bluetooth.find_service(uuid=UUID)
 			except Exception:
-				print "Failed to Scan, stopping all threads"
+				log("Failed to Scan, stopping all threads")
 				self.stop()
 				sys.exit()
 			except KeyboardInterrupt:
-				print "CTRL+C!"
+				log("CTRL+C!")
 				sys.exit()
-			print "Services found: %d"%len(services)
+			log("Services found: %d"%len(services))
 			for service in services :
-				print "Service found on BT %s @ %s" % (service["host"],service["port"])
+				log("Service found on BT %s @ %s" %
+                                        (service["host"],service["port"]))
+                                
 				if service["host"] not in self.activeZephyrs:
 					self.activeZephyrs.append(service["host"])
 					recvingTh = ReceivingThread(service,self.activeZephyrs)
@@ -88,7 +97,7 @@ class ReceivingThread(threading.Thread):
 			else:
 				raise
 
-		print "Receiving from %s" % self.name
+		log("Receiving from %s" % self.name)
 		try:
 			test = self.create_message_frame(0x14, [1])
 			socket.send(test)
@@ -120,7 +129,7 @@ class ReceivingThread(threading.Thread):
 				
 
 		except Exception, err:
-			print "Device %s disconnected" % self.address
+        		log("Device %s disconnected" % self.address)
 			socket.close()
 			self.activeZephyrs.remove(self.address)
 			self.stop()
