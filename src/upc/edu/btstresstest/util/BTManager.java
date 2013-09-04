@@ -1,7 +1,12 @@
 package upc.edu.btstresstest.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
@@ -194,16 +199,44 @@ public class BTManager {
 
 		// Prepare timerTask, send 4 messages every 500ms
 		TimerTask send = new TimerTask() {
-			byte[] b = new byte[1024];
 
 			@Override
 			public void run() {
+
+				int[] in = new int[] { 2, 43, 71, 118, 218, 7, 10, 23, 147,
+						247, 230, 2, 2, 0, 0, 0, 0, 0, 128, 151, 0, 1, 0, 3, 0,
+						194, 14, 29, 0, 0, 255, 255, 255, 32, 3, 132, 13, 0,
+						255, 255, 0, 255, 255, 0, 0, 86, 0, 93, 0, 46, 0, 54,
+						0, 244, 255, 252, 255, 249, 0, 19, 2, 254, 0, 12, 100,
+						1, 166, 1, 171, 1, 8, 2, 0, 0, 54, 3 };
+				
+				int hr = randomHR();
+				int br = randomBR();
+				
+				in[13] = hr;
+				in[14] = hr << 8;
+				
+				in[28] = br;
+				in[29] = br << 8;
+
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				DataOutputStream dos = new DataOutputStream(baos);
+				for (int i : in) {
+					try {
+						dos.write(i);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
 				try {
-					new Random().nextBytes(b);
-					// Log.d(app.TAG, "Before write");
-					bOs.write(b);
-					bOs.flush();
-					// Log.d(app.TAG, "After write");
+					dos.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				final byte[] tosend = baos.toByteArray();
+
+				try {
+					bOs.write(tosend);
 					app.messageCount++;
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -245,5 +278,23 @@ public class BTManager {
 		app.messageCount = 0;
 
 		paired = false;
+	}
+
+	int[] arrayhr = new int[] { 82, 84, 86, 90, 94, 92, 90, 92, 95, 90, 89, 85,
+			80, 77, 74, 69, 70, 74, 80, 72, 82, 80, 85, 87, 80, 85, 87, 85, 82,
+			95, 100, 110, 105, 100, 95, 90, 85, 84 };
+	int[] arraybr = new int[] { 200, 220, 230, 250, 260, 250, 240, 230, 220,
+			200, 210, 215, 225, 230, 240, 250, 255, 260, 255, 250, 245, 230,
+			225, 220, 230, 240, 250, 260, 265, 260, 255, 250, 245, 240, 230,
+			220, 210, 206, 205, 202 };
+
+	private Random rnd = new Random();
+
+	private int randomHR() {
+		return arrayhr[rnd.nextInt(arrayhr.length)];
+	}
+
+	private int randomBR() {
+		return arraybr[rnd.nextInt(arraybr.length)];
 	}
 }
